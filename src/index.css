@@ -19,6 +19,7 @@ body {
 	align-items: stretch;
 	justify-content: center;
 	border-block: 4px solid grey;
+	background-color: rgba(0,0,0,0.9);
 }
 
 .img-container>img {
@@ -26,7 +27,7 @@ body {
 	max-width: 100%;
 	max-height: 100%;
 	object-fit: cover;
-	transition: scale .3s ease-out;
+	transition: transform 0.3s ease-out, scale .3s ease-out 0.01s;
 }
 
 .img-container .panels-grid {

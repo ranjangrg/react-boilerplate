@@ -7,7 +7,7 @@ const defAppContextVal = {};
 const AppContext = React.createContext(defAppContextVal);
 
 const panels = [
-	[25,25,385,405], [385,20,530,405], [545,15,875,400], [15,415,385,805]	// img A
+	[25,25,385,405], [385,20,530,405], [545,15,875,400], [15,415,385,805], [540,815,880,1210]	// img A
 	//[20,15,100,90], [230,100,330,190], [340,20,580,290]	// img B
 ];
 
@@ -17,7 +17,7 @@ function App(props: any) {
 	const appContext = React.useContext(AppContext);
 	const canvasElemRef = React.useRef(document.getElementById("") as HTMLDivElement);
 	const imgElemRef = React.useRef(document.getElementById("") as HTMLImageElement);
-	const [appState, setAppState] = React.useState(null);
+
 	const [canvasDims, setCanvasDims] = React.useState({ h: 0, w: 0 });
 	const [imgDims, setImgDims] = React.useState({ h: 0, w: 0 });
 	const [imgNatDims, setImgNatDims] = React.useState({ h: 0, w: 0 });
@@ -39,14 +39,18 @@ function App(props: any) {
 		setCanvasDims(newCanvasDims);
 		imgResizeObsv.observe(imgElem);
 	};
+
+	const updateImgDims = () => {
+		const imgElem: HTMLImageElement = imgElemRef.current;
+		let currDims = {
+			h: imgElem.clientHeight,
+			w: imgElem.clientWidth
+		};
+		setImgDims(currDims);
+	};
 	useEffect(() => {
 		const _imgResizeObsv = new ResizeObserver((entries: ResizeObserverEntry[], observer: ResizeObserver) => {
-			const imgElem: HTMLImageElement = imgElemRef.current;
-			let currDims = {
-				h: imgElem.clientHeight,
-				w: imgElem.clientWidth
-			};
-			setImgDims(currDims);
+			updateImgDims();
 		});
 		setImgResizeObsv(_imgResizeObsv);
 	}, []);
@@ -62,14 +66,31 @@ function App(props: any) {
 			if (areaElem.coords == null) { return; }
 			const pd = areaElem.coords.split(",");
 			setViewType(ViewType.Panel);
-			const midPointX = (Number(pd[0]) + Number(pd[2])) / 2;
-			const midPointY = (Number(pd[1]) + Number(pd[3])) / 2;
-			imgElemRef.current.style.scale = "2";
-			imgElemRef.current.style.transformOrigin = `${midPointX}px ${midPointY}px`;
+			// const midPointX = (Number(pd[0]) + Number(pd[2])) / 2;
+			// const midPointY = (Number(pd[1]) + Number(pd[3])) / 2;
+			const panelHeight = Number(pd[3]) - Number(pd[1]);
+			const panelWidth = Number(pd[2]) - Number(pd[0]);
+			
+			// find the proper scaling factor to use so that
+			// the panel fills the canvas fully by height
+			console.log(`Panel: {h: ${Math.round(panelHeight)}, w: ${Math.round(panelWidth)}}`);
+			console.log(`const scaleFactor = ${canvasDims.h} / ${panelHeight};`);
+			
+			//scaleFactor = canvasDims.h / (Number(pd[3]) - Number(pd[1]));
+			const scaleFactor = canvasDims.h / panelHeight;
+			console.log(`Scalefactor: ${scaleFactor}`);
+
+			imgElemRef.current.style.scale = scaleFactor.toString();
+			//imgElemRef.current.style.transformOrigin = `${midPointX}px ${midPointY}px`;
+			imgElemRef.current.style.transformOrigin = `top left`;
+			imgElemRef.current.style.transform = `translate(-${Number(pd[0])}px, -${Number(pd[1])}px)`;
+			setImgDims({h: imgNatDims.h * scaleFactor, w: imgNatDims.w * scaleFactor});
 		} else {
 			setViewType(ViewType.Page);
-			const newScale = imgNatDims.h / canvasDims.h
-			imgElemRef.current.style.scale = `${newScale}`;
+			const newScale = canvasDims.h / imgNatDims.h;	// scaling only based on height
+			imgElemRef.current.style.scale = "1";	// 1 is the default scaling used
+			imgElemRef.current.style.transform = "translate(0px, 0px)";
+			setImgDims({h: imgNatDims.h * newScale, w: imgNatDims.w * newScale});
 		}
 	};
 
@@ -78,7 +99,7 @@ function App(props: any) {
 		<div>
 			<span> Canvas: ({canvasDims.h}, {canvasDims.w}) </span>
 			<span> Original: ({imgNatDims.h}, {imgNatDims.w}) </span>
-			<span> Current: ({imgDims.h}, {imgDims.w}) </span>
+			<span> Current: ({Math.round(imgDims.h)}, {Math.round(imgDims.w)}) </span>
 			<span> Scale: {getScale()} </span>
 		</div>
 		<div className="img-container" ref={canvasElemRef}>
